@@ -23,7 +23,7 @@ num_movies = st.sidebar.number_input('Количество фильмов для
 df = df.iloc[:num_movies,:]
 
 
-st.header("RecoMMovie - умнAI поиск фильмов")
+st.header("УмнAIя система поиска фильмов")
 user_description = st.text_input('Введите описание для фильма, который хотите посмотреть')
 
 col1, col2 = st.columns([7, 1])
