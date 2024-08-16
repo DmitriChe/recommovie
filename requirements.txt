@@ -1,3 +1,4 @@
+gigachat
 langchain
 langchain-community
 numpy
