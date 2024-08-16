@@ -1,3 +1,8 @@
+langchain==0.2.14
 numpy==2.0.1
 pandas==2.2.2
+sentence-transformers==3.0.1
 streamlit==1.37.1
+torch==2.3.1
+torchvision==0.18.1
+torchaudio==2.3.1

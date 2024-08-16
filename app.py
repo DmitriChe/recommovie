@@ -1,5 +1,49 @@
 import streamlit as st
+from sentence_transformers import SentenceTransformer, util
+import numpy as np
 import pandas as pd
+import re
+import string
+import requests
+from langchain.schema import HumanMessage, SystemMessage
+from langchain.chat_models.gigachat import GigaChat
+
+
+def clean(text):
+    text = str(text)
+    text = text.lower()  # нижний регистр
+    text = re.sub(r"http\S+", " ", text)  # удаляем ссылки
+    text = re.sub(r"@\w+", " ", text)  # удаляем упоминания пользователей
+    text = re.sub(r"#\w+", " ", text)  # удаляем хэштеги
+    text = re.sub(r"\d+", " ", text)  # удаляем числа
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    text = re.sub(r"<.*?>", " ", text)  #
+    text = re.sub(r"[️«»—]", " ", text)
+    text = text.lower()
+    return text
+
+def get_embedding(text):
+    out = model.encode(text)
+    return out
+
+def give_recommendations(query, top_k=10):
+    """Provide movie recommendations based on the query input."""
+    query_embedding = model.encode(query, convert_to_tensor=True).cpu()
+    similarities = util.pytorch_cos_sim(query_embedding, film_embeddings)[0]
+    top_results = similarities.cpu().numpy().argsort()[::-1][:top_k]
+    top_movies = df.iloc[top_results].copy()
+    similarity_scores = similarities.cpu().numpy()[top_results].copy()
+    top_movies['similarity_score'] = similarity_scores
+    return top_movies
+
+@st.cache_data
+def load_data(file_path):
+    df = pd.read_csv(file_path)
+    return df
+
+st.title('💡AI movie Recommendator')
+
+model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
 
 # Чтение датасета из csv и удаление пустых колонок 'Year' и 'Rating'
 df = pd.read_csv('./source/movies.csv')
@@ -11,68 +55,67 @@ df = df.rename(columns={
     'Page URL': 'page_url'
 }).drop(['Year', 'Rating'], axis=1)
 
+film_embeddings = np.load('./models/film_embedded.npy')
 
+query = st.text_input('What kind of movie do u whant to find🕵️? (Put description for recommendations)', '''Man who fighting with corruption in Gotham city''')
+
+button = st.button('Get recommendation')
+
+# index,Title,Description,Poster URL,Page URL,similarity_score
 with st.sidebar:
+    st.header("🗂️Original Dataset:")
     with st.popover("Movies Dataset Preview"):
         st.write(df)
 
-st.sidebar.header("Настройки отображения фильмов")
-# Виджет для выбора количества фильмов для отображения
-num_movies = st.sidebar.number_input('Количество фильмов для отображения', min_value=1, max_value=50, value=5, step=1)
 
-df = df.iloc[:num_movies,:]
+if query.strip() or (query.strip() and button):
+    return_df = give_recommendations(query).reset_index()
 
+    # Виджет для выбора количества фильмов для отображения
+    max_value = return_df.shape[0]
+    st.sidebar.header(f"🔍Found {max_value} movies:")
+    with st.sidebar:
+        with st.popover("Recommended Movies"):
+            st.write(return_df)
+    st.sidebar.header("⚙️Movie Display Settings")
+    num_movies = st.sidebar.number_input(f'How many movies to display? (from 1 to {max_value})', min_value=1, max_value=max_value, value=2, step=1)
 
-st.header("УмнAIя система поиска фильмов")
-user_description = st.text_input('Введите описание для фильма, который хотите посмотреть')
+    # Раскомментировать для отладки без запросов в GigaChat
+    # for i in range(num_movies):
+    #     col1, col2 = st.columns([1, 4])
+    #     with col1:
+    #         st.image(return_df['image_url'][i])
+    #     with col2:
+    #         st.write(f"**Movie name:** {return_df['movie_title'][i]}")
+    #         st.write(f"**Similarity Score:** {np.round(float(return_df['similarity_score'][i]), 2)}")
+    #         st.write(f"[See page on site]({return_df['page_url'][i]})")
 
-col1, col2 = st.columns([7, 1])
+    for i in range(num_movies):
+        container = st.container(border=True)
+        with container: 
+            col = st.columns(2)
+            sim_score = np.round(float(return_df['similarity_score'][i]), 2)
+            name = return_df['movie_title'][i]
+            col[0].image(return_df['image_url'][i])
+            col[1].write(f'Movie name: {name}')
+            col[1].write(f'Similarity Score: {sim_score}')
+            col[1].write("[See page on site](%s)" % return_df['page_url'][i])
 
-with col1:
-    pass
-with col2:
-    button = st.button('Найти')
-
-
-if user_description.strip() and button:
-    st.write("---")
-
-
-    for i in range(df.shape[0]):
-
-        image_url = df.image_url[i]
-        page_url = df.page_url[i]
-        movie_title = df.movie_title[i]
-        description = df.description[i]
-
-
-        # Создаем колонки для изображения и текста
-        col1, col2 = st.columns([1, 5])
-
-        with col1:
-            # Используем HTML, чтобы сделать изображение кликабельным
-            st.markdown(
-                f'<a href="{page_url}" target="_blank">'
-                f'<img src="{image_url}" width="150"></a>',
-                unsafe_allow_html=True
-            )
-
-        with col2:
-            # Отображаем название и описание фильма
-            # st.write(f"### {movie_title}")
-            # st.write(f"### {movie_title} ({i + 1} из {df.shape[0]})")
-            st.markdown(
-                f"""
-                <h3 style='display: inline;'>{movie_title}</h3>
-                <span style='font-size: 14px; color: gray;'> ({i + 1} из {df.shape[0]})</span>
-                """,
-                unsafe_allow_html=True
-            )
-            st.write(description)
-
-        # Разделитель между фильмами
-        st.write("---")
+            
+            with col[1].expander(f"Get summary plot for {name}"):
+                #st.write('Movie summary plot')
+                chat = GigaChat(credentials='YzIyNjc0NmEtM2Q0My00YzdjLTlhMGQtZTE3NjhkMzkxMDgyOjA4NDQ0NzVjLWYxYjYtNGFjNi05ZjY1LTYyNjBiYTZkZWIyNw==', verify_ssl_certs=False)
+                messages = [
+                SystemMessage(
+                    content="Ты самый большой знаток фильмов,который помогает поользователю узнать краткое содержание фильма по его названию и отвечает на его вопросы без лишних вопросов"
+                             )
+                           ]
+                user_input = f"User: Напиши мне красткое содержание фильма {name}, только описание без лишних слов"
+                messages.append(HumanMessage(content=user_input))
+                res = chat(messages)
+                messages.append(res)
+                st.write(res.content)
 
 else:
     if button:
-        st.warning('Пожалуйста, введите запрос в поле описания.')
+        st.warning('Please, put your text for recommendations')
