@@ -126,7 +126,7 @@ if query.strip() or (query.strip() and button):
                     content="Ты самый большой знаток фильмов,который помогает поользователю узнать краткое содержание фильма по его названию и отвечает на его вопросы без лишних вопросов"
                              )
                            ]
-                user_input = f"User: Напиши мне красткое содержание фильма {name}, только описание без лишних слов"
+                user_input = f"User: Напиши мне краткое содержание фильма {name}, только описание без лишних слов"
                 messages.append(HumanMessage(content=user_input))
                 res = chat(messages)
                 messages.append(res)
