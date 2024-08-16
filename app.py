@@ -62,11 +62,26 @@ query = st.text_input('What kind of movie do u whant to find🕵️? (Put descri
 
 button = st.button('Get recommendation')
 
-# index,Title,Description,Poster URL,Page URL,similarity_score
+
 with st.sidebar:
-    st.header("🗂️Original Dataset:")
-    with st.popover("Movies Dataset Preview"):
-        st.write(df)
+    with st.expander("❓About project"):
+        st.subheader("**Original Dataset** 🔘 4860 elements:")
+        with st.popover("Movies Dataset Preview👁️"):
+            st.write(df)
+
+        st.subheader("**Model** from SentenceTransformer:")
+        st.write("🚗distilbert-base-nli-stsb-mean-tokens")
+
+        st.subheader("**Data Source for Parsing:**")
+        st.write("[🔗letterboxd.com](https://letterboxd.com/)")
+
+        st.subheader("**Parsing time:**")
+        st.write("⏱️20 hours 🌒Selenium + Beautiful💃🧴Soup")
+
+
+        st.subheader("**Generative model for movie descriptions:**")
+        st.write("[🌐GigaChat (Сбер)](https://giga.chat/)")
+
 
 
 if query.strip() or (query.strip() and button):
