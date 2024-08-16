@@ -6,7 +6,7 @@ import re
 import string
 import requests
 from langchain.schema import HumanMessage, SystemMessage
-from langchain.chat_models.gigachat import GigaChat
+from langchain.chat_models import GigaChat
 
 api_key = st.secrets["api_keys"]["gigachat"]
 
