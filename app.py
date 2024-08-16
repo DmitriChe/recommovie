@@ -8,6 +8,7 @@ import requests
 from langchain.schema import HumanMessage, SystemMessage
 from langchain.chat_models.gigachat import GigaChat
 
+api_key = st.secrets["api_keys"]["gigachat"]
 
 def clean(text):
     text = str(text)
@@ -104,7 +105,7 @@ if query.strip() or (query.strip() and button):
             
             with col[1].expander(f"Get summary plot for {name}"):
                 #st.write('Movie summary plot')
-                chat = GigaChat(credentials='YzIyNjc0NmEtM2Q0My00YzdjLTlhMGQtZTE3NjhkMzkxMDgyOjA4NDQ0NzVjLWYxYjYtNGFjNi05ZjY1LTYyNjBiYTZkZWIyNw==', verify_ssl_certs=False)
+                chat = GigaChat(credentials=api_key, verify_ssl_certs=False)
                 messages = [
                 SystemMessage(
                     content="Ты самый большой знаток фильмов,который помогает поользователю узнать краткое содержание фильма по его названию и отвечает на его вопросы без лишних вопросов"
